@@ -6,6 +6,8 @@ import java.io.IOException;
 
 public class PacketWriter {
 
+	// Parts of this class are stolen from the PluginMessageAPI by iKeirNez | https://github.com/iKeirNez/PluginMessageAPI-Plus-LEGACY/blob/master/src/main/java/com/ikeirnez/pluginmessageframework/PacketWriter.java
+
 	private ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 	private DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
 
