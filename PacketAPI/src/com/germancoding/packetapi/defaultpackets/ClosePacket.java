@@ -8,7 +8,7 @@ import com.germancoding.packetapi.PacketWriter;
 
 public class ClosePacket extends Packet implements DefaultPacket{
 
-	private String closeMessage = "close";
+	private String closeMessage = "Connection closed by remote partner";
 	
 	@Override
 	public short getId() {

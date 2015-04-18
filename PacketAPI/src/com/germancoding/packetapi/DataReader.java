@@ -41,6 +41,7 @@ public class DataReader extends Thread {
 				}
 				if (packetIn.available() > 0) {
 					System.out.println("[DEBUG] [" + this.getName() + "] Packet with id " + id + " was not fully read, " + packetIn.available() + " bytes left in the buffer.");
+					// TODO: Remove this debug message in release version
 				}
 				handler.onPacketReceived(packet);
 			}
@@ -48,7 +49,7 @@ public class DataReader extends Thread {
 			if (Thread.interrupted() || handler.isClosed() || e instanceof InterruptedException)
 				return; // Close silently
 			if (e instanceof EOFException) {
-				handler.onConnectionClosed();
+				handler.onConnectionClosed("EOFException in DataReader", false);
 			} else {
 				handler.onConnectionFail(e);
 			}

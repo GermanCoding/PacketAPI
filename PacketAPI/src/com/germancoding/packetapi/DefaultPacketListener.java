@@ -33,7 +33,7 @@ public class DefaultPacketListener implements PacketListener {
 	}
 
 	@Override
-	public void onConnectionClosed(PacketHandler handler) {
+	public void onConnectionClosed(PacketHandler handler, String message, boolean expected) {
 		;
 	}
 
@@ -56,8 +56,7 @@ public class DefaultPacketListener implements PacketListener {
 	}
 	
 	private void handleClosePacket(ClosePacket packet) {
-		handler.logger.info("Close packet received, message: " + packet.getCloseMessage());
-		handler.onConnectionClosed();
+		handler.onConnectionClosed(packet.getCloseMessage(), true);
 	}
 
 }

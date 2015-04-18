@@ -6,7 +6,7 @@ public interface PacketListener {
 
 	public void onConnectionFailed(PacketHandler handler);
 
-	public void onConnectionClosed(PacketHandler handler);
+	public void onConnectionClosed(PacketHandler handler, String message, boolean expected);
 
 	public void onUnknownPacketReceived(PacketHandler handler, short id);
 

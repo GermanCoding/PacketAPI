@@ -33,6 +33,7 @@ public class PacketHandler {
 	private boolean closed;
 	private boolean versionApproved;
 	private boolean handshakeSend;
+	private boolean closeListenerNotified;
 
 	private static boolean hasExternalThread;
 	private static int numberOfHandlers;
@@ -64,12 +65,12 @@ public class PacketHandler {
 				}
 
 				@Override
-				public void onConnectionClosed(PacketHandler handler) {
+				public void onUnknownPacketReceived(PacketHandler handler, short id) {
 					;
 				}
 
 				@Override
-				public void onUnknownPacketReceived(PacketHandler handler, short id) {
+				public void onConnectionClosed(PacketHandler handler, String message, boolean expected) {
 					;
 				}
 			});
@@ -86,7 +87,6 @@ public class PacketHandler {
 			registerPacket(ClosePacket.class);
 		} catch (Exception e) {
 			logger.severe("Failed to register default packets! " + e);
-			e.printStackTrace();
 		}
 	}
 
@@ -125,13 +125,22 @@ public class PacketHandler {
 		close();
 	}
 
-	public void onConnectionClosed() {
+	public void onConnectionClosed(String message, boolean expected) {
+		getDefaultPacketListener().onConnectionClosed(this, message, expected);
+		getListener().onConnectionClosed(this, message, expected);
+		closeListenerNotified = true;
 		close();
 	}
 
 	public void close() {
 		if (closed)
 			return;
+		if(!closeListenerNotified)
+		{
+			// Someone is calling close() directly so we assume that the connection was closed expectly
+			getDefaultPacketListener().onConnectionClosed(this, "Connection closed locally", true);
+			getListener().onConnectionClosed(this, "Connection closed locally", true);
+		}
 		closed = true;
 		ClosePacket close = new ClosePacket();
 		sendPacket(close);
@@ -147,8 +156,6 @@ public class PacketHandler {
 				}
 			}
 		}
-		getDefaultPacketListener().onConnectionClosed(this);
-		getListener().onConnectionClosed(this);
 		sender.interrupt();
 		reader.interrupt();
 		try {
