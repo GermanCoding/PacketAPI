@@ -40,14 +40,14 @@ public class UnreliableInputStream extends InputStream {
 			return buffer.removeFirst().intValue();
 		} else {
 			// No more data in the buffer, read some new!
-			if(!readPacket())
+			if (!readPacket())
 				return -1;
 			return read();
 		}
 	}
 
 	private boolean readPacket() throws IOException {
-		if(socket.isClosed())
+		if (socket.isClosed())
 			return false;
 		DatagramPacket packet = new DatagramPacket(new byte[UnreliableSocket.MAX_PACKET_SIZE], UnreliableSocket.MAX_PACKET_SIZE);
 		socket.receive(packet);

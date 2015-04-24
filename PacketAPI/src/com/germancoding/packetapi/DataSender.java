@@ -24,9 +24,8 @@ public class DataSender extends Thread {
 			this.notify();
 		}
 	}
-	
-	public boolean queueEmpty()
-	{
+
+	public boolean queueEmpty() {
 		synchronized (sendQueue) {
 			return sendQueue.isEmpty();
 		}
@@ -50,9 +49,7 @@ public class DataSender extends Thread {
 					dos.flush(); // Flush it, (R)UDP implementations will send at least one UDP packet with the written data
 					// TODO: flush() may be good for UDP, but in TCP it could cause lots of small packets which is not very efficient - Maybe some own algorithm to check whether flushs are necessary?
 					dos = null; // TODO: Is this neccessary? Or does the GC delete this object anyway when we go into a new loop?
-				}
-				else
-				{
+				} else {
 					synchronized (this) {
 						try {
 							this.wait();
@@ -66,7 +63,7 @@ public class DataSender extends Thread {
 			if (Thread.interrupted() || handler.isClosed())
 				return; // Close silently
 			if (e instanceof EOFException) { // EOF = End of File (Though, we don't have a "file" here :) )
-				// Are EOF's possible in a SENDING stream??? But anyway, handling them is always good... 
+				// Are EOF's possible in a SENDING stream??? But anyway, handling them is always good...
 				handler.onConnectionClosed("EOFException in DataSender", false);
 			} else {
 				handler.onConnectionFail(e);

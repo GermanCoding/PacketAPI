@@ -6,10 +6,10 @@ import java.io.IOException;
 import com.germancoding.packetapi.Packet;
 import com.germancoding.packetapi.PacketWriter;
 
-public class ClosePacket extends Packet implements DefaultPacket{
+public class ClosePacket extends Packet implements DefaultPacket {
 
 	private String closeMessage = "Connection closed by remote partner";
-	
+
 	@Override
 	public short getId() {
 		return IDRegistry.CLOSE_PACKET;

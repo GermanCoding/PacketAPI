@@ -21,15 +21,17 @@ public class UnreliableSocket {
 	 * Creates a new UnreliableSocket with the given <code>socket</code> as the underlying socket. The socket can be in any state (connected, data flow already started...) as long as it isn't closed.<br>
 	 * After calling this constructor, you should call the connect() method if the underlying socket isn't already connected<br>
 	 * If necessary, the receiver buffer size of the underlying socket is changed to receive large packets. A <code>SocketException</code> is thrown if this fails.
-	 * @param socket The underlying socket where data is send and received.
-	 * @throws SocketException If buffer resizing fails
+	 * 
+	 * @param socket
+	 *            The underlying socket where data is send and received.
+	 * @throws SocketException
+	 *             If buffer resizing fails
 	 */
 	public UnreliableSocket(DatagramSocket socket) throws SocketException {
 		this.socket = socket;
 		if (socket.getReceiveBufferSize() < UnreliableSocket.MAX_PACKET_SIZE)
 			socket.setReceiveBufferSize(UnreliableSocket.MAX_PACKET_SIZE); // Fix buffer size so that we can receive large packets
-		if(socket.isConnected())
-		{
+		if (socket.isConnected()) {
 			connect(socket.getInetAddress(), socket.getPort());
 		}
 		setOut(new UnreliableOutputStream(this));
