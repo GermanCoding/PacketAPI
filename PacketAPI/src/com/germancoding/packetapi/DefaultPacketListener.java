@@ -45,16 +45,15 @@ public class DefaultPacketListener implements PacketListener {
 	// Handlers
 
 	private void handleHandshakePacket(HandshakePacket packet) {
-		if (packet.getProtocolVersion() != PacketHandler.PROTOCOL_VERSION) {
-			handler.logger.severe("Protocol version not equal: Our protocol: " + PacketHandler.PROTOCOL_VERSION + ", other side: " + packet.getProtocolVersion());
-			handler.onConnectionFail(new Exception("Protocol version mismatch"));
+		if (packet.getHandshakeID() == PacketHandler.HANDSHAKE_ID_REQUEST) {
+			handler.sendHandshake(PacketHandler.HANDSHAKE_ID_RESPONSE);
 		}
-		else
-		{
+		handler.setRemoteProtocolVersion(packet.getProtocolVersion());
+		if (packet.getProtocolVersion() == PacketHandler.PROTOCOL_VERSION) {
 			handler.setVersionApproved(true);
 		}
 	}
-	
+
 	private void handleClosePacket(ClosePacket packet) {
 		handler.onConnectionClosed(packet.getCloseMessage(), true);
 	}

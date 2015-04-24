@@ -17,12 +17,18 @@ public class PacketHandler {
 	/** Applications can change this value if they want **/
 	public static int PROTOCOL_VERSION = 1;
 
+	/** Handshake ID used in the sendHandshake() method. The other side will respond to that packet. **/
+	public static int HANDSHAKE_ID_REQUEST = 0;
+
+	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. **/
+	public static int HANDSHAKE_ID_RESPONSE = 1;
+
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>();
 
 	private String connectionName;
 	public Logger logger = Logger.getLogger("PacketHandler");
 
-	public InputStream in;
+	public InputStream in; // Public for direct access (Yes, that's not encapsulated...)
 	public OutputStream out;
 	private DataSender sender;
 	private DataReader reader;
@@ -34,11 +40,25 @@ public class PacketHandler {
 	private boolean versionApproved;
 	private boolean handshakeSend;
 	private boolean closeListenerNotified;
+	private int remoteProtocolVersion = -1;
 
 	private static boolean hasExternalThread;
 	private static int numberOfHandlers;
 	private static LinkedList<Process> processingQueue = new LinkedList<Process>();
 
+	/**
+	 * Creates a new PacketHandler instance. The instance will use the given I/O streams to send and receive data.
+	 * 
+	 * @param in
+	 *            The InputStream to read data from.
+	 * @param out
+	 *            The OutputStream to send data to.
+	 * @param connectionName
+	 *            Optional: Give the connection a name to identify it. Can be <code>null</code>.
+	 * @param listener
+	 *            A listener which is notified when something happens (A packet arrived, the connection failed...). Can be <code>null</code> if the application does not want to listen to
+	 *            incoming data.
+	 */
 	public PacketHandler(InputStream in, OutputStream out, String connectionName, PacketListener listener) {
 		if (in == null || out == null) {
 			throw new IllegalArgumentException("InputStream or OutputStream can not be null");
@@ -90,6 +110,14 @@ public class PacketHandler {
 		}
 	}
 
+	/**
+	 * Registers a new packet. After registering the packet type can be send and received.
+	 * 
+	 * @param packetClass
+	 *            The class of the new packet.
+	 * @throws Exception
+	 *             If reflection fails, like when there is no nullary constructor.
+	 */
 	public void registerPacket(Class<? extends Packet> packetClass) throws Exception {
 		if (packetClass == null)
 			throw new IllegalArgumentException("packetClass can not be null");
@@ -112,10 +140,22 @@ public class PacketHandler {
 		return null;
 	}
 
+	/**
+	 * Sends the given packet by adding it to the sending queue.
+	 * 
+	 * @param p
+	 *            The packet to send.
+	 */
 	public void sendPacket(Packet p) {
 		getSender().sendPacket(p);
 	}
 
+	/**
+	 * Notifies this instance that the connection has failed. This method notifies the listeners and closes the connection
+	 * 
+	 * @param e
+	 *            A exception describing why the connection has failed.
+	 */
 	public void onConnectionFail(Exception e) {
 		if (closed) // Abort if the connection was already closed (A closed connection can not fail)
 			return;
@@ -125,6 +165,14 @@ public class PacketHandler {
 		close();
 	}
 
+	/**
+	 * Notifies this instance that the connection is closed.
+	 * 
+	 * @param message
+	 *            Message why the connection was closed.
+	 * @param expected
+	 *            Whether this was expected (like there was a close packet) or not (like when the underlying socket is closed without notification)
+	 */
 	public void onConnectionClosed(String message, boolean expected) {
 		getDefaultPacketListener().onConnectionClosed(this, message, expected);
 		getListener().onConnectionClosed(this, message, expected);
@@ -132,11 +180,13 @@ public class PacketHandler {
 		close();
 	}
 
+	/**
+	 * Closes the connection, the I/O streams and notfies the other side that we are closing this connection.
+	 */
 	public void close() {
 		if (closed)
 			return;
-		if(!closeListenerNotified)
-		{
+		if (!closeListenerNotified) {
 			// Someone is calling close() directly so we assume that the connection was closed expectly
 			getDefaultPacketListener().onConnectionClosed(this, "Connection closed locally", true);
 			getListener().onConnectionClosed(this, "Connection closed locally", true);
@@ -183,6 +233,9 @@ public class PacketHandler {
 		defaultPacketListener = null;
 	}
 
+	/**
+	 * @return The name of this connection.
+	 */
 	public String getConnectionName() {
 		return connectionName;
 	}
@@ -191,14 +244,23 @@ public class PacketHandler {
 		this.connectionName = connectionName;
 	}
 
+	/**
+	 * @return The reader which is reading data from the InputStream.
+	 */
 	public DataReader getReader() {
 		return reader;
 	}
 
+	/**
+	 * @return The sender which is sending data to the OutputStream.
+	 */
 	public DataSender getSender() {
 		return sender;
 	}
 
+	/**
+	 * @return The application/user listener.
+	 */
 	public PacketListener getListener() {
 		return listener;
 	}
@@ -207,6 +269,9 @@ public class PacketHandler {
 		this.listener = listener;
 	}
 
+	/**
+	 * @return The listener used by the PacketAPI for default packets.
+	 */
 	public DefaultPacketListener getDefaultPacketListener() {
 		return defaultPacketListener;
 	}
@@ -215,6 +280,10 @@ public class PacketHandler {
 		this.defaultPacketListener = defaultPacketListener;
 	}
 
+	/**
+	 * Called when a new packet was received.
+	 * @param packet The packet just received.
+	 */
 	public void onPacketReceived(Packet packet) {
 		if (hasExternalThread) {
 			// Processing is done by the external thread
@@ -248,6 +317,10 @@ public class PacketHandler {
 		}
 	}
 
+	/**
+	 * Whether the connection was closed (using the close() function of this class) or not.
+	 * @return
+	 */
 	public boolean isClosed() {
 		return closed;
 	}
@@ -259,10 +332,21 @@ public class PacketHandler {
 		}
 	}
 
+	/**
+	 * Sends a handshake to exchange version numbers. You have to call this method if you want to use state attributes like isVersionApproved().
+	 */
 	public void sendHandshake() {
+		sendHandshake(HANDSHAKE_ID_REQUEST);
+	}
+
+	/**
+	 * Sends a handshake using the given id as the handshake id.
+	 * @param id The handshake id.
+	 */
+	public void sendHandshake(int id) {
 		HandshakePacket handshake = new HandshakePacket();
-		handshake.setHandshakeID((int) System.currentTimeMillis()); // Bits will be cut off if the long value is to big for an integer
-		handshake.setProtocolVersion(PacketHandler.PROTOCOL_VERSION);
+		handshake.setHandshakeID(HANDSHAKE_ID_REQUEST);
+		handshake.setProtocolVersion(id);
 		sendPacket(handshake);
 		setHandshakeSend(true);
 	}
@@ -320,6 +404,11 @@ public class PacketHandler {
 		hasExternalThread = false;
 	}
 
+	/**
+	 * @return Whether the protocol version is approved. The protocol version is approved when both peers have the same protocol version.<br>
+	 *         To request a version check, simply send a handshake packet by calling <code>sendHandshake()</code>. After receiving the response from the other side and comparing the version numbers, the version will
+	 *         be approved.
+	 */
 	public boolean isVersionApproved() {
 		return versionApproved;
 	}
@@ -328,12 +417,27 @@ public class PacketHandler {
 		this.versionApproved = versionApproved;
 	}
 
+	/**
+	 * @return Whether this side has send a handshake packet.<br>
+	 *         Note: Handshake packets are not send automatically, you have to call <code>sendHandshake()</code>.
+	 */
 	public boolean isHandshakeSend() {
 		return handshakeSend;
 	}
 
 	public void setHandshakeSend(boolean handshakeSend) {
 		this.handshakeSend = handshakeSend;
+	}
+
+	/**
+	 * @return The protocol version of the other peer or -1 if the version used by the other peer is unknown (e.g no handshake was send)
+	 */
+	public int getRemoteProtocolVersion() {
+		return remoteProtocolVersion;
+	}
+
+	public void setRemoteProtocolVersion(int remoteProtocolVersion) {
+		this.remoteProtocolVersion = remoteProtocolVersion;
 	}
 
 }
