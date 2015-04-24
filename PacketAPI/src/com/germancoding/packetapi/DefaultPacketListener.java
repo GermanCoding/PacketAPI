@@ -55,7 +55,8 @@ public class DefaultPacketListener implements PacketListener {
 	}
 
 	private void handleClosePacket(ClosePacket packet) {
-		handler.onConnectionClosed(packet.getCloseMessage(), true);
+		if (!handler.isClosed())
+			handler.onConnectionClosed(packet.getCloseMessage(), true);
 	}
 
 }

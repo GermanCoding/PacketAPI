@@ -25,7 +25,7 @@ public class HandshakePacket extends Packet implements DefaultPacket {
 	public PacketWriter prepare() throws IOException {
 		PacketWriter data = new PacketWriter(getId());
 		data.writeInt(handshakeID);
-		data.write(protocolVersion);
+		data.writeInt(protocolVersion);
 		return data;
 	}
 

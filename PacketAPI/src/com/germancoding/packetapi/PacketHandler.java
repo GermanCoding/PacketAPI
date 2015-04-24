@@ -195,17 +195,18 @@ public class PacketHandler {
 		ClosePacket close = new ClosePacket();
 		sendPacket(close);
 		long timeout = System.currentTimeMillis() + 5000;
-		while (!sender.queueEmpty()) {
+		do {
 			synchronized (this) {
 				try {
-					this.wait(1);
-					if (System.currentTimeMillis() >= timeout)
+					this.wait(500);
+					if (System.currentTimeMillis() >= timeout) {
 						break;
+					}
 				} catch (InterruptedException e) {
 					break;
 				}
 			}
-		}
+		} while (!sender.queueEmpty());
 		sender.interrupt();
 		reader.interrupt();
 		try {
@@ -282,7 +283,9 @@ public class PacketHandler {
 
 	/**
 	 * Called when a new packet was received.
-	 * @param packet The packet just received.
+	 * 
+	 * @param packet
+	 *            The packet just received.
 	 */
 	public void onPacketReceived(Packet packet) {
 		if (hasExternalThread) {
@@ -319,6 +322,7 @@ public class PacketHandler {
 
 	/**
 	 * Whether the connection was closed (using the close() function of this class) or not.
+	 * 
 	 * @return
 	 */
 	public boolean isClosed() {
@@ -341,12 +345,14 @@ public class PacketHandler {
 
 	/**
 	 * Sends a handshake using the given id as the handshake id.
-	 * @param id The handshake id.
+	 * 
+	 * @param id
+	 *            The handshake id.
 	 */
 	public void sendHandshake(int id) {
 		HandshakePacket handshake = new HandshakePacket();
-		handshake.setHandshakeID(HANDSHAKE_ID_REQUEST);
-		handshake.setProtocolVersion(id);
+		handshake.setHandshakeID(id);
+		handshake.setProtocolVersion(PROTOCOL_VERSION);
 		sendPacket(handshake);
 		setHandshakeSend(true);
 	}
