@@ -23,24 +23,26 @@ public class PacketHandler {
 	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. **/
 	public static int HANDSHAKE_ID_RESPONSE = 1;
 
-	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>();
-
-	private String connectionName;
 	public Logger logger = Logger.getLogger("PacketHandler");
 
 	public InputStream in; // Public for direct access (Yes, that's not encapsulated...)
 	public OutputStream out;
+	
 	private DataSender sender;
 	private DataReader reader;
+	
 	private PacketListener listener;
 	private DefaultPacketListener defaultPacketListener = new DefaultPacketListener(this);
 
 	// State attributes
+	private String connectionName;
 	private boolean closed;
 	private boolean versionApproved;
 	private boolean handshakeSend;
 	private boolean closeListenerNotified;
 	private int remoteProtocolVersion = -1;
+	
+	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
 
 	private static boolean hasExternalThread;
 	private static int numberOfHandlers;
