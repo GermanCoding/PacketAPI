@@ -26,7 +26,7 @@
     <mkdir dir="${dist}/lib"/>
 
     <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-    <jar jarfile="${dist}/lib/PacketAPI-${DSTAMP}.jar" basedir="${build}"/>
+    <jar jarfile="${dist}/lib/PacketAPI.jar" basedir="${build}"/>
   </target>
 
   <target name="clean"
