@@ -22,3 +22,8 @@ Note:
 When using raw UDP: Avoid sending large packets (Bigger than UnreliableSocket.MAX_PACKET_SIZE) because otherwise the
 packet will be splitted and if one of the splitted packets is lost or not received in order the whole connection
 could fail (or at least the parsing). Sending such big packets is possible though.
+
+Download
+--
+You can download a up to date pre-compiled version of this API here:
+http://aknm-craft.de:8080/job/PacketAPI/lastSuccessfulBuild/artifact/PacketAPI/dist/lib/PacketAPI.jar
