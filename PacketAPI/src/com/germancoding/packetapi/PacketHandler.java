@@ -27,10 +27,10 @@ public class PacketHandler {
 
 	public InputStream in; // Public for direct access (Yes, that's not encapsulated...)
 	public OutputStream out;
-	
+
 	private DataSender sender;
 	private DataReader reader;
-	
+
 	private PacketListener listener;
 	private DefaultPacketListener defaultPacketListener = new DefaultPacketListener(this);
 
@@ -41,7 +41,7 @@ public class PacketHandler {
 	private boolean handshakeSend;
 	private boolean closeListenerNotified;
 	private int remoteProtocolVersion = -1;
-	
+
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
 
 	private static boolean hasExternalThread;
