@@ -27,3 +27,27 @@ Download
 --
 You can download a up to date pre-compiled version of this API here:
 http://aknm-craft.de:8080/job/PacketAPI/lastSuccessfulBuild/artifact/PacketAPI/dist/lib/PacketAPI.jar
+
+Of course you can also download/clone the source and compile it for yourself.
+
+Javadoc
+--
+The javadoc of this project is available here: http://aknm-craft.de:8080/job/PacketAPI/javadoc
+
+Usage
+--
+To create a new connection using the PacketAPI, simply create a new PacketHandler object.
+```
+PacketHandler myNewHandler = new PacketHandler(in, out, "Hello!", myListener);
+```
+'In' must be some InputStream which is already connected with your remote partner. 'Out' is the corresponding OutputStream. 'myListener' is a PacketListener which is notified when something happens. You can create a new one or set it to null.
+
+Using the PacketAPI with UDP
+--
+Since the PacketAPI uses streams to send/receive data you might think that you can not use UDP. Wrong! The PacketAPI has support for UDP:
+```
+UnreliableSocket myUDPSocket = new UnreliableSocket(someUDPSocket);
+PacketHandler myNewHandler = new PacketHandler(myUDPSocket.getInputStream(), myUDPSocket.getOutputStream(), "Hello!", myListener);
+```
+
+For more informations about the constructors and the methods, please read the javadocs. Not all methods are documentated yet but the most important things are.
