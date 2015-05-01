@@ -21,16 +21,23 @@ public class DataReader extends Thread {
 		try {
 			while (!Thread.interrupted()) {
 				int length = in.readInt();
+				if (length <= 0) {
+					throw new IOException("Protocol violation: Illegal length received");
+				}
+
 				byte[] data = new byte[length];
 				in.readFully(data); // Read the whole packet into the buffer
 				// Create a sub-inputstream which can only read this packet
 				DataInputStream packetIn = new DataInputStream(new ByteArrayInputStream(data));
+
 				short id = packetIn.readShort();
+
 				Packet packet = handler.getNewPacketInstance(id);
 				if (packet == null) {
 					handler.onUnknownPacketReceived(id);
 					continue;
 				}
+
 				try {
 					packet.handle(packetIn);
 				} catch (IOException e) {
@@ -39,6 +46,7 @@ public class DataReader extends Thread {
 					else
 						continue;
 				}
+
 				if (packetIn.available() > 0) {
 					System.out.println("[DEBUG] [" + this.getName() + "] Packet with id " + id + " was not fully read, " + packetIn.available() + " bytes left in the buffer.");
 					// TODO: Remove this debug message in release version
