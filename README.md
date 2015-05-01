@@ -30,6 +30,10 @@ http://aknm-craft.de:8080/job/PacketAPI/lastSuccessfulBuild/artifact/PacketAPI/d
 
 Of course you can also download/clone the source and compile it for yourself.
 
+Javadoc
+--
+The javadoc of this project is available here: http://aknm-craft.de:8080/job/PacketAPI/javadoc
+
 Usage
 --
 To create a new connection using the PacketAPI, simply create a new PacketHandler object.
