@@ -279,7 +279,7 @@ public class PacketHandler {
 		return defaultPacketListener;
 	}
 
-	public void setDefaultPacketListener(DefaultPacketListener defaultPacketListener) {
+	protected void setDefaultPacketListener(DefaultPacketListener defaultPacketListener) {
 		this.defaultPacketListener = defaultPacketListener;
 	}
 
