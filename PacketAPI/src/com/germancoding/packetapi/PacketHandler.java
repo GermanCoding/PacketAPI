@@ -3,6 +3,7 @@ package com.germancoding.packetapi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.logging.Logger;
@@ -18,10 +19,10 @@ public class PacketHandler {
 	public static int PROTOCOL_VERSION = 1;
 
 	/** Handshake ID used in the sendHandshake() method. The other side will respond to that packet. **/
-	public static int HANDSHAKE_ID_REQUEST = 0;
+	public static final int HANDSHAKE_ID_REQUEST = 0;
 
 	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. **/
-	public static int HANDSHAKE_ID_RESPONSE = 1;
+	public static final int HANDSHAKE_ID_RESPONSE = 1;
 
 	public Logger logger = Logger.getLogger("PacketHandler");
 
@@ -156,7 +157,7 @@ public class PacketHandler {
 	 * Notifies this instance that the connection has failed. This method notifies the listeners and closes the connection
 	 * 
 	 * @param e
-	 *            A exception describing why the connection has failed.
+	 *            An exception describing why the connection has failed.
 	 */
 	public void onConnectionFail(Exception e) {
 		if (closed) // Abort if the connection was already closed (A closed connection can not fail)
@@ -369,7 +370,8 @@ public class PacketHandler {
 	 * The thread can not be interrupted, all attempts will be ignored
 	 * 
 	 * @throws IllegalAccessError
-	 *             If there is already a processor thread (@see hasExternalThread() )
+	 *             If there is already a processor thread
+	 * @see #hasExternalThread()
 	 */
 	public static void threadJoin() {
 		if (hasExternalThread) {

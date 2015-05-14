@@ -45,7 +45,7 @@ public abstract class Packet {
 	 *            will also throw a EOFException when you try to read more bytes than <code>in.available()</code>
 	 * @throws IOException
 	 *             If reading fails, e.g there are not enough bytes or the bytes are wrong encoded (e.g you want to read UTF but there is no UTF-String encoded in bytes)
-	 * @see <code>prepare()</code>
+	 * @see #prepare()
 	 */
 	public abstract void handle(DataInputStream in) throws IOException;
 
@@ -64,7 +64,7 @@ public abstract class Packet {
 	 * @return A new <code>PacketWriter</code> instance where all the data of this packet is stored
 	 * @throws IOException
 	 *             If a PacketWriter call fails. Should never happen (since the <code>PacketWriter</code> only stores data in the memory)
-	 * @see handle()
+	 * @see #handle()
 	 */
 	public abstract PacketWriter prepare() throws IOException;
 

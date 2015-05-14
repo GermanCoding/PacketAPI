@@ -79,8 +79,7 @@ public class UnreliableSocket {
 	}
 
 	/**
-	 * @see The connect() method.
-	 * @param remoteAddress
+	 * @see #connect(InetAddress, int)
 	 */
 	public void setRemoteAddress(InetAddress remoteAddress) {
 		this.remoteAddress = remoteAddress;
@@ -94,8 +93,7 @@ public class UnreliableSocket {
 	}
 
 	/**
-	 * @see The connect() method.
-	 * @param remotePort
+	 * @see #connect(InetAddress, int)
 	 */
 	public void setRemotePort(int remotePort) {
 		this.remotePort = remotePort;
