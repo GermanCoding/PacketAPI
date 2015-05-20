@@ -64,7 +64,7 @@ public abstract class Packet {
 	 * @return A new <code>PacketWriter</code> instance where all the data of this packet is stored
 	 * @throws IOException
 	 *             If a PacketWriter call fails. Should never happen (since the <code>PacketWriter</code> only stores data in the memory)
-	 * @see #handle()
+	 * @see #handle(DataInputStream)
 	 */
 	public abstract PacketWriter prepare() throws IOException;
 

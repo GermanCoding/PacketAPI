@@ -324,9 +324,8 @@ public class PacketHandler {
 	}
 
 	/**
-	 * Whether the connection was closed (using the close() function of this class) or not.
 	 * 
-	 * @return
+	 * @return Whether the connection was closed (using the close() function of this class) or not. 
 	 */
 	public boolean isClosed() {
 		return closed;
