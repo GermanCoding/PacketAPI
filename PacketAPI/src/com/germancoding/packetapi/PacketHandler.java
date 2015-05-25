@@ -11,17 +11,21 @@ import com.germancoding.packetapi.Process.ActionType;
 import com.germancoding.packetapi.defaultpackets.ClosePacket;
 import com.germancoding.packetapi.defaultpackets.DefaultPacket;
 import com.germancoding.packetapi.defaultpackets.HandshakePacket;
+import com.germancoding.packetapi.defaultpackets.KeepAlivePacket;
 
 public class PacketHandler {
 
-	/** Applications can change this value if they want **/
+	/** Applications can change this value if they want. Default is 1 **/
 	public static int PROTOCOL_VERSION = 1;
 
-	/** Handshake ID used in the sendHandshake() method. The other side will respond to that packet. **/
+	/** Handshake ID used in the sendHandshake() method. The other side will respond to that packet. Default is 0 **/
 	public static int HANDSHAKE_ID_REQUEST = 0;
 
-	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. **/
+	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. Default is 1 **/
 	public static int HANDSHAKE_ID_RESPONSE = 1;
+
+	/** Timeout (in MS) after which KeepAlive packets should be send. Default is 20 seconds (20000 ms) **/
+	public static int DATA_TIMEOUT = 20000;
 
 	public Logger logger = Logger.getLogger("PacketHandler");
 
@@ -41,6 +45,8 @@ public class PacketHandler {
 	private boolean handshakeSend;
 	private boolean closeListenerNotified;
 	private int remoteProtocolVersion = -1;
+	private long lastPacketReceived;
+	private boolean autoSendKeepAlive;
 
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
 
@@ -107,6 +113,7 @@ public class PacketHandler {
 		try {
 			registerPacket(HandshakePacket.class);
 			registerPacket(ClosePacket.class);
+			registerPacket(KeepAlivePacket.class);
 		} catch (Exception e) {
 			logger.severe("Failed to register default packets! " + e);
 		}
@@ -176,6 +183,8 @@ public class PacketHandler {
 	 *            Whether this was expected (like there was a close packet) or not (like when the underlying socket is closed without notification)
 	 */
 	public void onConnectionClosed(String message, boolean expected) {
+		if(closed)
+			return;
 		getDefaultPacketListener().onConnectionClosed(this, message, expected);
 		getListener().onConnectionClosed(this, message, expected);
 		closeListenerNotified = true;
@@ -315,6 +324,7 @@ public class PacketHandler {
 	}
 
 	private void processPacket(Packet packet) {
+		setLastPacketReceived(System.currentTimeMillis());
 		if (packet instanceof DefaultPacket) {
 			getDefaultPacketListener().onPacketReceived(this, packet);
 		} else {
@@ -446,6 +456,36 @@ public class PacketHandler {
 
 	public void setRemoteProtocolVersion(int remoteProtocolVersion) {
 		this.remoteProtocolVersion = remoteProtocolVersion;
+	}
+
+	/**
+	 * @return The timestamp when the last packet was (successfull) received. 0 if no packet was received yet.
+	 */
+	public long getLastPacketReceived() {
+		return lastPacketReceived;
+	}
+
+	public void setLastPacketReceived(long lastPacketReceived) {
+		this.lastPacketReceived = lastPacketReceived;
+	}
+
+	/**
+	 * @return Whether the library automatically sends packets to keep the connection alive.
+	 */
+	public boolean autoSendKeepAlive() {
+		return autoSendKeepAlive;
+	}
+
+	public void setAutoSendKeepAlive(boolean autoSendKeepAlive) {
+		this.autoSendKeepAlive = autoSendKeepAlive;
+	}
+
+	/**
+	 * @return If no data is send by the application for some time, this value returns true.
+	 * @see #DATA_TIMEOUT
+	 */
+	public boolean shouldSendKeepAlive() {
+		return (System.currentTimeMillis() - getLastPacketReceived()) >= DATA_TIMEOUT;
 	}
 
 }

@@ -3,6 +3,7 @@ package com.germancoding.packetapi;
 import com.germancoding.packetapi.defaultpackets.ClosePacket;
 import com.germancoding.packetapi.defaultpackets.HandshakePacket;
 import com.germancoding.packetapi.defaultpackets.IDRegistry;
+import com.germancoding.packetapi.defaultpackets.KeepAlivePacket;
 
 public class DefaultPacketListener implements PacketListener {
 
@@ -21,6 +22,8 @@ public class DefaultPacketListener implements PacketListener {
 		case IDRegistry.CLOSE_PACKET:
 			handleClosePacket((ClosePacket) packet);
 			break;
+		case IDRegistry.KEEPALIVE_PACKET:
+			handleKeepAlivePacket((KeepAlivePacket) packet);
 		default:
 			break;
 		}
@@ -57,6 +60,14 @@ public class DefaultPacketListener implements PacketListener {
 	private void handleClosePacket(ClosePacket packet) {
 		if (!handler.isClosed())
 			handler.onConnectionClosed(packet.getCloseMessage(), true);
+	}
+
+	private void handleKeepAlivePacket(KeepAlivePacket packet) {
+		if (!packet.isResponse()) {
+			KeepAlivePacket keepAliveResponse = new KeepAlivePacket();
+			keepAliveResponse.setResponse(true);
+			handler.sendPacket(keepAliveResponse);
+		}
 	}
 
 }
