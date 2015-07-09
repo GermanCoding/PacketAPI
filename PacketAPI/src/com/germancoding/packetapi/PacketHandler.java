@@ -24,7 +24,7 @@ public class PacketHandler {
 	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. Default is 1 **/
 	public static int HANDSHAKE_ID_RESPONSE = 1;
 
-	/** Timeout (in MS) after which KeepAlive packets should be send. Default is 20 seconds (20000 ms) **/
+	/** Timeout (in MS) after which KeepAlive packets should be send. Default is 20.000 ms **/
 	public static int DATA_TIMEOUT = 20000;
 
 	public Logger logger = Logger.getLogger("PacketHandler");
@@ -131,8 +131,8 @@ public class PacketHandler {
 		if (packetClass == null)
 			throw new IllegalArgumentException("packetClass can not be null");
 		// If this call fails (e.g when there is no nullary constructor), an exception will be thrown.
-		int id = packetClass.newInstance().getId();
-		packetMap.put((short) id, packetClass);
+		short id = packetClass.newInstance().getId();
+		packetMap.put(id, packetClass);
 	}
 
 	public Packet getNewPacketInstance(short id) {
@@ -183,7 +183,7 @@ public class PacketHandler {
 	 *            Whether this was expected (like there was a close packet) or not (like when the underlying socket is closed without notification)
 	 */
 	public void onConnectionClosed(String message, boolean expected) {
-		if(closed)
+		if (closed)
 			return;
 		getDefaultPacketListener().onConnectionClosed(this, message, expected);
 		getListener().onConnectionClosed(this, message, expected);
