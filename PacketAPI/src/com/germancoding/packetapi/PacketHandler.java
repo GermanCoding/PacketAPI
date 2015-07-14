@@ -20,7 +20,7 @@ public class PacketHandler {
 	public static int PROTOCOL_VERSION = 1;
 	/** Handshake ID used in the sendHandshake() method. The other side will respond to that packet. Default is 0 **/
 	public static int HANDSHAKE_ID_REQUEST = 0;
-	
+
 	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. Default is 1 **/
 	public static int HANDSHAKE_ID_RESPONSE = 1;
 
@@ -47,6 +47,7 @@ public class PacketHandler {
 	private int remoteProtocolVersion = -1;
 	private long lastPacketReceived;
 	private boolean autoSendKeepAlive;
+	private boolean notifyDefaults;
 
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
 
@@ -150,7 +151,7 @@ public class PacketHandler {
 	}
 
 	/**
-	 * Sends the given packet by adding it to the sending queue.
+	 * Sends the given packet by adding it to the sending queue. Sendings packets that are not registered is possible, but is not recommended.
 	 * 
 	 * @param p
 	 *            The packet to send.
@@ -197,12 +198,12 @@ public class PacketHandler {
 	public void close() {
 		if (closed)
 			return;
+		closed = true;
 		if (!closeListenerNotified) {
 			// Someone is calling close() directly so we assume that the connection was closed expectly
 			getDefaultPacketListener().onConnectionClosed(this, "Connection closed locally", true);
 			getListener().onConnectionClosed(this, "Connection closed locally", true);
 		}
-		closed = true;
 		ClosePacket close = new ClosePacket();
 		sendPacket(close);
 		long timeout = System.currentTimeMillis() + 5000;
@@ -327,14 +328,18 @@ public class PacketHandler {
 		setLastPacketReceived(System.currentTimeMillis());
 		if (packet instanceof DefaultPacket) {
 			getDefaultPacketListener().onPacketReceived(this, packet);
-		} else {
+			if (notifyDefaults) {
+				getListener().onPacketReceived(this, packet);
+			}
+		}
+		else {
 			getListener().onPacketReceived(this, packet);
 		}
 	}
 
 	/**
 	 * 
-	 * @return Whether the connection was closed (using the close() function of this class) or not. 
+	 * @return Whether the connection was closed (using the close() function of this class) or not.
 	 */
 	public boolean isClosed() {
 		return closed;
@@ -470,7 +475,7 @@ public class PacketHandler {
 	}
 
 	/**
-	 * @return Whether the library automatically sends packets to keep the connection alive.
+	 * @return Whether the library automatically sends packets to keep the connection alive. Default is false.
 	 */
 	public boolean autoSendKeepAlive() {
 		return autoSendKeepAlive;
@@ -486,6 +491,16 @@ public class PacketHandler {
 	 */
 	public boolean shouldSendKeepAlive() {
 		return (System.currentTimeMillis() - getLastPacketReceived()) >= DATA_TIMEOUT;
+	}
+
+	/**
+	 * Sets whether this library calls PacketListener.onPacketReceived when default packets are received.
+	 * 
+	 * @param notify
+	 *            Whether to notify your PacketListener when we receive default packets. Normally, only the DefaultPacketListener gets notified.
+	 */
+	public void notifyOnDefaultPackets(boolean notify) {
+		this.notifyDefaults = notify;
 	}
 
 }
