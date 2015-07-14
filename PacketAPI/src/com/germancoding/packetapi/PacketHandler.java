@@ -169,7 +169,7 @@ public class PacketHandler {
 	public void onConnectionFail(Exception e) {
 		if (closed) // Abort if the connection was already closed (A closed connection can not fail)
 			return;
-		logger.severe("Connection '" + getConnectionName() + "' failed! " + e);
+		logger.warning("Connection '" + getConnectionName() + "' failed! " + e);
 		getDefaultPacketListener().onConnectionFailed(this);
 		getListener().onConnectionFailed(this);
 		close();
