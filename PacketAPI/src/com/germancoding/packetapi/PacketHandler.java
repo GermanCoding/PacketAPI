@@ -1,11 +1,35 @@
+/*******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 Nummer378
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *******************************************************************************/
 package com.germancoding.packetapi;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import com.germancoding.packetapi.Process.ActionType;
@@ -19,18 +43,18 @@ public class PacketHandler {
 	/** Applications can change this value if they want. Default is 1 **/
 	public static int PROTOCOL_VERSION = 1;
 	/** Handshake ID used in the sendHandshake() method. The other side will respond to that packet. Default is 0 **/
-	public static int HANDSHAKE_ID_REQUEST = 0;
+	public static final int HANDSHAKE_ID_REQUEST = 0;
 
 	/** Handshake ID used when replying to a handshake packet. The other side will not respond to that packet. Default is 1 **/
-	public static int HANDSHAKE_ID_RESPONSE = 1;
+	public static final int HANDSHAKE_ID_RESPONSE = 1;
 
 	/** Timeout (in MS) after which KeepAlive packets should be send. Default is 20.000 ms **/
 	public static int DATA_TIMEOUT = 20000;
 
 	public Logger logger = Logger.getLogger("PacketHandler");
 
-	public InputStream in; // Public for direct access (Yes, that's not encapsulated...)
-	public OutputStream out;
+	protected InputStream in; // Protected for direct access
+	protected OutputStream out;
 
 	private DataSender sender;
 	private DataReader reader;
@@ -51,9 +75,8 @@ public class PacketHandler {
 
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
 
-	private static boolean hasExternalThread;
-	private static int numberOfHandlers;
-	private static LinkedList<Process> processingQueue = new LinkedList<Process>();
+	private boolean autoProcessPackets = true;
+	private LinkedList<Process> processingQueue = new LinkedList<Process>();
 
 	/**
 	 * Creates a new PacketHandler instance. The instance will use the given I/O streams to send and receive data.
@@ -107,7 +130,6 @@ public class PacketHandler {
 		registerPacketDefaults();
 		sender = new DataSender(this);
 		reader = new DataReader(this);
-		numberOfHandlers++;
 	}
 
 	private void registerPacketDefaults() {
@@ -227,7 +249,6 @@ public class PacketHandler {
 		} catch (IOException e) {
 			;
 		}
-		numberOfHandlers--;
 		synchronized (processingQueue) { // <--- Request ownership of the object's monitor to call notify()
 			processingQueue.notify(); // Wake up an waiting external thread (if there is one) to update itself.
 		}
@@ -300,7 +321,7 @@ public class PacketHandler {
 	 *            The packet just received.
 	 */
 	public void onPacketReceived(Packet packet) {
-		if (hasExternalThread) {
+		if (!autoProcessPackets) {
 			// Processing is done by the external thread
 			Process process = new Process(ActionType.RECEIVED, packet.getId(), packet, this);
 			addToQueue(process);
@@ -311,7 +332,7 @@ public class PacketHandler {
 	}
 
 	public void onUnknownPacketReceived(short id) {
-		if (hasExternalThread) {
+		if (!autoProcessPackets) {
 			Process process = new Process(ActionType.UNKN_RECEIVED, id, null, this);
 			addToQueue(process);
 		} else {
@@ -331,8 +352,7 @@ public class PacketHandler {
 			if (notifyDefaults) {
 				getListener().onPacketReceived(this, packet);
 			}
-		}
-		else {
+		} else {
 			getListener().onPacketReceived(this, packet);
 		}
 	}
@@ -373,58 +393,53 @@ public class PacketHandler {
 		setHandshakeSend(true);
 	}
 
-	public static boolean hasExternalThread() {
-		return hasExternalThread;
+	/**
+	 * Returns all packets that have not been processed yet. Returns <code>null</code> if {@link #automaticPacketProcessing()} is true. <br>
+	 * Calling this method will first pass the cached packets to the listeners before it returns them. <br>
+	 * If {@link #automaticPacketProcessing()} is false, it is recommended to call this method frequently otherwise no packets will get processed.
+	 * 
+	 * @return All packets in the queue or an empty list. Only <code>null</code> if packets are automatically processed.
+	 * @see #automaticPacketProcessing()
+	 */
+	public List<Packet> getCachedPackets() {
+		if (automaticPacketProcessing() && processingQueue.isEmpty()) // There could be packets left in the queue even if automatic processing is on
+			return null;
+
+		ArrayList<Packet> packets = new ArrayList<Packet>();
+
+		for (Process ppacket : processingQueue) {
+
+			switch (ppacket.getType()) {
+			case RECEIVED:
+				processPacket(ppacket.getPacket());
+				packets.add(ppacket.getPacket());
+				break;
+			case UNKN_RECEIVED:
+				processUnknownPacket(ppacket.getPacketID());
+				break;
+			default:
+				logger.warning("Unknown packet processor type: " + ppacket.getType());
+				break;
+			}
+		}
+
+		processingQueue.clear();
+		return packets;
 	}
 
 	/**
-	 * External threads can call this method to become a processor for incoming packets for ALL handlers<br>
-	 * Threads won't leave this method until the connections of all handlers are closed (or have failed)
-	 * The thread can not be interrupted, all attempts will be ignored
-	 * 
-	 * @throws IllegalAccessError
-	 *             If there is already a processor thread
-	 * @see #hasExternalThread()
+	 * @return Whether automatic packet processing is on. If true, packets will be passed directly to the listener after receiving.
+	 *         This is done on an async thread (called DataReader). 
+	 *         <br> In some cases you may want to handle to the incoming packets on your (main) thread.
+	 *         To achieve this, set automatic packet processing to false and call {@link #getCachedPackets()} frequently to get your packets processed on your thread.
+	 *         <br> Default is true.
 	 */
-	public static void threadJoin() {
-		if (hasExternalThread) {
-			throw new IllegalAccessError("There is already an external thread");
-		}
-		hasExternalThread = true;
-		while (numberOfHandlers > 0) {
-			try {
-				Process proc = null;
-				synchronized (processingQueue) {
-					if (!processingQueue.isEmpty()) {
-						proc = processingQueue.removeFirst();
-					}
-				}
-				if (proc != null) {
-					switch (proc.getType()) {
-					case RECEIVED:
-						proc.getHandler().processPacket(proc.getPacket());
-						break;
-					case UNKN_RECEIVED:
-						proc.getHandler().processUnknownPacket(proc.getPacketID());
-						break;
-					default:
-						break;
-					}
-				} else // No more elements in the queue, wait for a notify
-				{
-					synchronized (processingQueue) {
-						try {
-							processingQueue.wait();
-						} catch (InterruptedException e) {
-							;
-						}
-					}
-				}
-			} catch (Throwable e) {
-				System.err.println("Exception in external processing thread: " + e);
-			}
-		}
-		hasExternalThread = false;
+	public boolean automaticPacketProcessing() {
+		return autoProcessPackets;
+	}
+
+	public void setAutomaticPacketProcessing(boolean on) {
+		autoProcessPackets = on;
 	}
 
 	/**
