@@ -59,7 +59,7 @@ public class UnreliableInputStream extends InputStream {
 
 	@Override
 	public int read() throws IOException {
-		if (buffer.size() > 0) {
+		if (available() > 0) {
 			return buffer.removeFirst().intValue();
 		} else {
 			// No more data in the buffer, read some new!
@@ -82,7 +82,7 @@ public class UnreliableInputStream extends InputStream {
 		}
 		byte[] data = packet.getData();
 		// TODO: Offsets?
-		if (packet.getLength() != data.length) {
+		if (packet.getLength() != data.length) { // Fix packet length if neccessary
 			byte[] fixedData = new byte[packet.getLength()];
 			System.arraycopy(data, 0, fixedData, 0, fixedData.length);
 			data = fixedData;

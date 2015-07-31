@@ -72,14 +72,17 @@ public class PacketHandler {
 	private long lastPacketReceived;
 	private boolean autoSendKeepAlive;
 	private boolean notifyDefaults;
+	private boolean autoProcessPackets = true;
 
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
-
-	private boolean autoProcessPackets = true;
 	private LinkedList<Process> processingQueue = new LinkedList<Process>();
 
 	/**
-	 * Creates a new PacketHandler instance. The instance will use the given I/O streams to send and receive data.
+	 * Creates a new PacketHandler instance. The instance will use the given I/O streams to send and receive data. <br>
+	 * <br>
+	 * <b>Note about timeouts: When the I/O stream reads from a TCP connection (or any other protocol that deals with timeouts), beware of the socket timeout value!
+	 * If the <code>PacketHandler</code> runs into a timeout, the connection will be marked as failed and will be terminated. To avoid this, set the timeout to zero or set it
+	 * to something higher then the {@link #DATA_TIMEOUT} and use the keep-alive function.</b>
 	 * 
 	 * @param in
 	 *            The InputStream to read data from.
@@ -175,6 +178,8 @@ public class PacketHandler {
 	/**
 	 * Sends the given packet by adding it to the sending queue. Sendings packets that are not registered is possible, but is not recommended.
 	 * 
+	 * Calling this method has the same effect as calling <code>getSender().sendPacket(p)</code>
+	 * 
 	 * @param p
 	 *            The packet to send.
 	 */
@@ -205,7 +210,7 @@ public class PacketHandler {
 	 * @param expected
 	 *            Whether this was expected (like there was a close packet) or not (like when the underlying socket is closed without notification)
 	 */
-	public void onConnectionClosed(String message, boolean expected) {
+	protected void onConnectionClosed(String message, boolean expected) {
 		if (closed)
 			return;
 		getDefaultPacketListener().onConnectionClosed(this, message, expected);
@@ -256,15 +261,17 @@ public class PacketHandler {
 	}
 
 	private void dispose() {
-		sender = null;
-		reader = null;
-		packetMap = null;
 		in = null;
 		out = null;
-		connectionName = null;
-		logger = null;
+		sender = null;
+		reader = null;
 		listener = null;
 		defaultPacketListener = null;
+		connectionName = null;
+		packetMap.clear();
+		packetMap = null;
+		processingQueue.clear();
+		processingQueue = null;
 	}
 
 	/**
@@ -429,10 +436,10 @@ public class PacketHandler {
 
 	/**
 	 * @return Whether automatic packet processing is on. If true, packets will be passed directly to the listener after receiving.
-	 *         This is done on an async thread (called DataReader). 
-	 *         <br> In some cases you may want to handle to the incoming packets on your (main) thread.
-	 *         To achieve this, set automatic packet processing to false and call {@link #getCachedPackets()} frequently to get your packets processed on your thread.
-	 *         <br> Default is true.
+	 *         This is done on an async thread (called DataReader). <br>
+	 *         In some cases you may want to handle to the incoming packets on your (main) thread.
+	 *         To achieve this, set automatic packet processing to false and call {@link #getCachedPackets()} frequently to get your packets processed on your thread. <br>
+	 *         Default is true.
 	 */
 	public boolean automaticPacketProcessing() {
 		return autoProcessPackets;
@@ -509,7 +516,7 @@ public class PacketHandler {
 	}
 
 	/**
-	 * Sets whether this library calls PacketListener.onPacketReceived when default packets are received.
+	 * Sets whether this library calls <code>PacketListener.onPacketReceived()</code> when default packets are received.
 	 * 
 	 * @param notify
 	 *            Whether to notify your PacketListener when we receive default packets. Normally, only the DefaultPacketListener gets notified.

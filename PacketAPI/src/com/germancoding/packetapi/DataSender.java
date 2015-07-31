@@ -97,7 +97,7 @@ public class DataSender extends Thread {
 		} catch (IOException e) {
 			if (Thread.interrupted() || handler.isClosed())
 				return; // Close silently
-			if (e instanceof EOFException) { // EOF = End of File (Though, we don't have a "file" here :) )
+			if (e instanceof EOFException) { // EOF = End of File (Though, we don't have a "file" here)
 				// Are EOF's possible in a SENDING stream??? But anyway, handling them is always good...
 				handler.onConnectionClosed("EOFException in DataSender", false);
 			} else {

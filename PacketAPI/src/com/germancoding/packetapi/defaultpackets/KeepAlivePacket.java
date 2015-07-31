@@ -30,7 +30,7 @@ import com.germancoding.packetapi.Packet;
 import com.germancoding.packetapi.PacketWriter;
 
 public class KeepAlivePacket extends Packet implements DefaultPacket {
-	
+
 	private boolean response;
 
 	@Override
