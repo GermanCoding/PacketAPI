@@ -114,10 +114,6 @@ public class PacketHandler {
 					; // Do nothing
 				}
 
-				@Override
-				public void onConnectionFailed(PacketHandler handler) {
-					;
-				}
 
 				@Override
 				public void onUnknownPacketReceived(PacketHandler handler, short id) {
@@ -126,6 +122,11 @@ public class PacketHandler {
 
 				@Override
 				public void onConnectionClosed(PacketHandler handler, String message, boolean expected) {
+					;
+				}
+
+				@Override
+				public void onConnectionFailed(PacketHandler handler, Throwable exception) {
 					;
 				}
 			});
@@ -197,8 +198,8 @@ public class PacketHandler {
 		if (closed) // Abort if the connection was already closed (A closed connection can not fail)
 			return;
 		logger.warning("Connection '" + getConnectionName() + "' failed! " + e);
-		getDefaultPacketListener().onConnectionFailed(this);
-		getListener().onConnectionFailed(this);
+		getDefaultPacketListener().onConnectionFailed(this, e);
+		getListener().onConnectionFailed(this, e);
 		close();
 	}
 
@@ -405,7 +406,7 @@ public class PacketHandler {
 	 * Calling this method will first pass the cached packets to the listeners before it returns them. <br>
 	 * If {@link #automaticPacketProcessing()} is false, it is recommended to call this method frequently otherwise no packets will get processed.
 	 * 
-	 * @return All packets in the queue or an empty list. Only <code>null</code> if packets are automatically processed.
+	 * @return All user packets in the queue or an empty list. Only <code>null</code> if packets are automatically processed.
 	 * @see #automaticPacketProcessing()
 	 */
 	public List<Packet> getCachedPackets() {
@@ -523,6 +524,15 @@ public class PacketHandler {
 	 */
 	public void notifyOnDefaultPackets(boolean notify) {
 		this.notifyDefaults = notify;
+	}
+	
+	/**
+	 * Shuts down this PacketHandler instance silently without touching the underlying streams or sockets.
+	 */
+	public void shutdown()
+	{
+		getReader().interrupt();
+		getSender().interrupt();
 	}
 
 }

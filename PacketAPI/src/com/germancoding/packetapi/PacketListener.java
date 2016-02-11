@@ -27,7 +27,7 @@ public interface PacketListener {
 
 	public void onPacketReceived(PacketHandler handler, Packet packet);
 
-	public void onConnectionFailed(PacketHandler handler);
+	public void onConnectionFailed(PacketHandler handler, Throwable exception);
 
 	public void onConnectionClosed(PacketHandler handler, String message, boolean expected);
 

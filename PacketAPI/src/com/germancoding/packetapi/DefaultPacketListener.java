@@ -53,10 +53,6 @@ public class DefaultPacketListener implements PacketListener {
 		;
 	}
 
-	@Override
-	public void onConnectionFailed(PacketHandler handler) {
-		;
-	}
 
 	@Override
 	public void onConnectionClosed(PacketHandler handler, String message, boolean expected) {
@@ -91,6 +87,11 @@ public class DefaultPacketListener implements PacketListener {
 			keepAliveResponse.setResponse(true);
 			handler.sendPacket(keepAliveResponse);
 		}
+	}
+
+	@Override
+	public void onConnectionFailed(PacketHandler handler, Throwable exception) {
+		;
 	}
 
 }
