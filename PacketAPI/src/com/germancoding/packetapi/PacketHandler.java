@@ -114,7 +114,6 @@ public class PacketHandler {
 					; // Do nothing
 				}
 
-
 				@Override
 				public void onUnknownPacketReceived(PacketHandler handler, short id) {
 					;
@@ -410,29 +409,31 @@ public class PacketHandler {
 	 * @see #automaticPacketProcessing()
 	 */
 	public List<Packet> getCachedPackets() {
-		if (automaticPacketProcessing() && processingQueue.isEmpty()) // There could be packets left in the queue even if automatic processing is on
-			return null;
+		synchronized (processingQueue) {
+			if (automaticPacketProcessing() && processingQueue.isEmpty()) // There could be packets left in the queue even if automatic processing is on
+				return null;
 
-		ArrayList<Packet> packets = new ArrayList<Packet>();
+			ArrayList<Packet> packets = new ArrayList<Packet>();
 
-		for (Process ppacket : processingQueue) {
+			for (Process ppacket : processingQueue) {
 
-			switch (ppacket.getType()) {
-			case RECEIVED:
-				processPacket(ppacket.getPacket());
-				packets.add(ppacket.getPacket());
-				break;
-			case UNKN_RECEIVED:
-				processUnknownPacket(ppacket.getPacketID());
-				break;
-			default:
-				logger.warning("Unknown packet processor type: " + ppacket.getType());
-				break;
+				switch (ppacket.getType()) {
+				case RECEIVED:
+					processPacket(ppacket.getPacket());
+					packets.add(ppacket.getPacket());
+					break;
+				case UNKN_RECEIVED:
+					processUnknownPacket(ppacket.getPacketID());
+					break;
+				default:
+					logger.warning("Unknown packet processor type: " + ppacket.getType());
+					break;
+				}
 			}
-		}
 
-		processingQueue.clear();
-		return packets;
+			processingQueue.clear();
+			return packets;
+		}
 	}
 
 	/**
@@ -525,12 +526,11 @@ public class PacketHandler {
 	public void notifyOnDefaultPackets(boolean notify) {
 		this.notifyDefaults = notify;
 	}
-	
+
 	/**
 	 * Shuts down this PacketHandler instance silently without touching the underlying streams or sockets.
 	 */
-	public void shutdown()
-	{
+	public void shutdown() {
 		getReader().interrupt();
 		getSender().interrupt();
 	}
