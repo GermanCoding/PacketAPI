@@ -531,6 +531,7 @@ public class PacketHandler {
 	 * Shuts down this PacketHandler instance silently without touching the underlying streams or sockets.
 	 */
 	public void shutdown() {
+		closed = true;
 		getReader().interrupt();
 		getSender().interrupt();
 	}
