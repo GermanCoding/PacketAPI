@@ -26,13 +26,13 @@ could fail (or at least the parsing). Sending such big packets is possible thoug
 Download
 --
 You can download a up to date pre-compiled version of this API here (Compiled with Java 8):
-http://aknm-craft.de:8080/job/PacketAPI/lastSuccessfulBuild/artifact/PacketAPI/dist/lib/PacketAPI.jar
+[Download currently unavailable]
 
 Of course you can also download/clone the source and compile it for yourself.
 
 Javadoc
 --
-The javadoc of this project is available here: http://aknm-craft.de:8080/job/PacketAPI/javadoc
+The javadoc of this project is available here: [Javadoc currently unavailable]
 
 Usage
 --
