@@ -47,7 +47,7 @@ public class DataReader extends Thread {
 				if (length <= 0) {
 					throw new IOException("Protocol violation: Illegal length received");
 				}
-
+				
 				byte[] data = new byte[length];
 				in.readFully(data); // Read the whole packet into the buffer
 				// Create a sub-inputstream which can only read this packet

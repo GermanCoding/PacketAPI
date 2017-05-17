@@ -26,8 +26,9 @@ package com.germancoding.packetapi;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
-public class PacketWriter {
+public class PacketWriter extends OutputStream{
 
 	// Parts of this class are stolen from the PluginMessageAPI by iKeirNez | https://github.com/iKeirNez/PluginMessageAPI-Plus-LEGACY/blob/master/src/main/java/com/ikeirnez/pluginmessageframework/PacketWriter.java
 

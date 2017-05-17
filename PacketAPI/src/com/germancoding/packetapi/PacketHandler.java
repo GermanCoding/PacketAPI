@@ -169,7 +169,9 @@ public class PacketHandler {
 		}
 		try {
 			return packetClass.newInstance();
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (InstantiationException e) {
+			logger.severe("Failed to instantiate a new packet class instance. " + e);
+		} catch (IllegalAccessException e) {
 			logger.severe("Failed to instantiate a new packet class instance. " + e);
 		}
 		return null;

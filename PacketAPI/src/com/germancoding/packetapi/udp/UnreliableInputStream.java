@@ -70,8 +70,9 @@ public class UnreliableInputStream extends InputStream {
 	}
 
 	private boolean readPacket() throws IOException {
-		if (socket.isClosed())
+		if (socket.isClosed()) {
 			return false;
+		}
 		DatagramPacket packet = new DatagramPacket(new byte[UnreliableSocket.MAX_PACKET_SIZE], UnreliableSocket.MAX_PACKET_SIZE);
 		socket.receive(packet);
 		if (uSocket.getRemoteAddress() != null) {
