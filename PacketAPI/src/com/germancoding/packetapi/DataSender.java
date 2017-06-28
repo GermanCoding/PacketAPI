@@ -66,24 +66,21 @@ public class DataSender extends Thread {
 						toSend = sendQueue.removeFirst();
 				}
 				if (toSend != null) {
-					// Create a new DOS every time to avoid buffer overflows (the written counter is an integer which will overflow at some point)
+					// Create a new DOS every time to avoid buffer overflows (the written counter is an integer which will get stuck at Integer.MAX_VALUE at some point)
 					DataOutputStream dos = new DataOutputStream(handler.out);
 					PacketWriter writer = toSend.prepare();
 					dos.writeInt(writer.toByteArray().length); // Write packet length
 					dos.write(writer.toByteArray()); // Write packetID and content - The PacketWriter already prepared this data for us
-					dos.flush(); // Flush it, (R)UDP implementations will send at least one UDP packet with the written data
-					// TODO: flush() may be good for UDP, but in TCP it could cause lots of small packets which is not very efficient - Maybe some own algorithm to check whether flushs are necessary?
-					dos = null; // TODO: Is this neccessary? Or does the GC delete this object anyway when we go into a new loop?
-				} else if (handler.shouldSendKeepAlive() && handler.autoSendKeepAlive()) {
-					KeepAlivePacket autoKeepAlive = new KeepAlivePacket();
-					handler.sendPacket(autoKeepAlive);
-					synchronized (this) {
-						try {
-							this.wait(PacketHandler.DATA_TIMEOUT / 3); // Wait a bit, give the other side time to receive the packet
-						} catch (InterruptedException e) {
-							return;
-						}
+
+					if (handler.isInstantFlush()) {
+						dos.flush(); // Flush it, (R)UDP implementations will send at least one UDP packet with the written data
 					}
+					
+					handler.setLastPacketSend(System.currentTimeMillis());
+					dos = null;
+				} else if (handler.autoSendKeepAlive() && handler.shouldSendKeepAlive()) {
+					KeepAlivePacket autoKeepAlive = new KeepAlivePacket();
+					handler.sendPacket(autoKeepAlive); // We will send this packet in the next loop, right now it's in the queue
 				} else {
 					synchronized (this) {
 						try {

@@ -37,6 +37,7 @@ import com.germancoding.packetapi.defaultpackets.ClosePacket;
 import com.germancoding.packetapi.defaultpackets.DefaultPacket;
 import com.germancoding.packetapi.defaultpackets.HandshakePacket;
 import com.germancoding.packetapi.defaultpackets.KeepAlivePacket;
+import com.germancoding.packetapi.udp.UnreliableOutputStream;
 
 public class PacketHandler {
 
@@ -70,9 +71,11 @@ public class PacketHandler {
 	private boolean closeListenerNotified;
 	private int remoteProtocolVersion = -1;
 	private long lastPacketReceived;
+	private long lastPacketSend;
 	private boolean autoSendKeepAlive;
 	private boolean notifyDefaults;
 	private boolean autoProcessPackets = true;
+	private boolean instantFlush;
 
 	private HashMap<Short, Class<? extends Packet>> packetMap = new HashMap<Short, Class<? extends Packet>>(); // TODO: What about a static packet map? (The local packet map could be optional)
 	private LinkedList<Process> processingQueue = new LinkedList<Process>();
@@ -80,9 +83,7 @@ public class PacketHandler {
 	/**
 	 * Creates a new PacketHandler instance. The instance will use the given I/O streams to send and receive data. <br>
 	 * <br>
-	 * <b>Note about timeouts: When the I/O stream reads from a TCP connection (or any other protocol that deals with timeouts), beware of the socket timeout value!
-	 * If the <code>PacketHandler</code> runs into a timeout, the connection will be marked as failed and will be terminated. To avoid this, set the timeout to zero or set it
-	 * to something higher then the {@link #DATA_TIMEOUT} and use the keep-alive function.</b>
+	 * <b>Note about timeouts: When the I/O stream reads from a UDP socket (or any other protocol that deals with timeouts), beware of the socket timeout value! If the <code>PacketHandler</code> runs into a timeout, the connection will be marked as failed and will be terminated. To avoid this, set the timeout to zero or set it to something higher then the {@link #DATA_TIMEOUT} and use the keep-alive function.</b>
 	 * 
 	 * @param in
 	 *            The InputStream to read data from.
@@ -91,8 +92,7 @@ public class PacketHandler {
 	 * @param connectionName
 	 *            Optional: Give the connection a name to identify it. Can be <code>null</code>.
 	 * @param listener
-	 *            A listener which is notified when something happens (A packet arrived, the connection failed...). Can be <code>null</code> if the application does not want to listen to
-	 *            incoming data.
+	 *            A listener which is notified when something happens (A packet arrived, the connection failed...). Can be <code>null</code> if the application does not want to listen to incoming data.
 	 */
 	public PacketHandler(InputStream in, OutputStream out, String connectionName, PacketListener listener) {
 		if (in == null || out == null) {
@@ -133,6 +133,10 @@ public class PacketHandler {
 		registerPacketDefaults();
 		sender = new DataSender(this);
 		reader = new DataReader(this);
+
+		if (out instanceof UnreliableOutputStream) {
+			setInstantFlush(true);
+		}
 	}
 
 	private void registerPacketDefaults() {
@@ -284,6 +288,8 @@ public class PacketHandler {
 	}
 
 	public void setConnectionName(String connectionName) {
+		if (connectionName == null)
+			connectionName = "";
 		this.connectionName = connectionName;
 	}
 
@@ -309,6 +315,9 @@ public class PacketHandler {
 	}
 
 	public void setListener(PacketListener listener) {
+		if (listener == null) {
+			throw new IllegalArgumentException("Listener cannot be null at this point. A null listener is only allowed in the constructor.");
+		}
 		this.listener = listener;
 	}
 
@@ -320,6 +329,9 @@ public class PacketHandler {
 	}
 
 	protected void setDefaultPacketListener(DefaultPacketListener defaultPacketListener) {
+		if (defaultPacketListener == null) {
+			throw new IllegalArgumentException("DefaultPacketListener cannot be null.");
+		}
 		this.defaultPacketListener = defaultPacketListener;
 	}
 
@@ -407,7 +419,7 @@ public class PacketHandler {
 	 * Calling this method will first pass the cached packets to the listeners before it returns them. <br>
 	 * If {@link #automaticPacketProcessing()} is false, it is recommended to call this method frequently otherwise no packets will get processed.
 	 * 
-	 * @return All user packets in the queue or an empty list. Only <code>null</code> if packets are automatically processed.
+	 * @return All packets in the queue or an empty list. Only <code>null</code> if packets are automatically processed and the queue is empty.
 	 * @see #automaticPacketProcessing()
 	 */
 	public List<Packet> getCachedPackets() {
@@ -439,10 +451,8 @@ public class PacketHandler {
 	}
 
 	/**
-	 * @return Whether automatic packet processing is on. If true, packets will be passed directly to the listener after receiving.
-	 *         This is done on an async thread (called DataReader). <br>
-	 *         In some cases you may want to handle to the incoming packets on your (main) thread.
-	 *         To achieve this, set automatic packet processing to false and call {@link #getCachedPackets()} frequently to get your packets processed on your thread. <br>
+	 * @return Whether automatic packet processing is on. If true, packets will be passed directly to the listener after receiving. This is done on an async thread (called DataReader). <br>
+	 *         In some cases you may want to handle to the incoming packets on your (main) thread. To achieve this, set automatic packet processing to false and call {@link #getCachedPackets()} frequently to get your packets processed on your thread. <br>
 	 *         Default is true.
 	 */
 	public boolean automaticPacketProcessing() {
@@ -455,8 +465,7 @@ public class PacketHandler {
 
 	/**
 	 * @return Whether the protocol version is approved. The protocol version is approved when both peers have the same protocol version.<br>
-	 *         To request a version check, simply send a handshake packet by calling <code>sendHandshake()</code>. After receiving the response from the other side and comparing the version numbers, the version will
-	 *         be approved.
+	 *         To request a version check, simply send a handshake packet by calling <code>sendHandshake()</code>. After receiving the response from the other side and comparing the version numbers, the version will be approved.
 	 */
 	public boolean isVersionApproved() {
 		return versionApproved;
@@ -501,6 +510,17 @@ public class PacketHandler {
 	}
 
 	/**
+	 * @return The timestamp when the last packet was send. 0 if no packet was send yet.
+	 */
+	public long getLastPacketSend() {
+		return lastPacketSend;
+	}
+
+	public void setLastPacketSend(long lastPacketSend) {
+		this.lastPacketSend = lastPacketSend;
+	}
+
+	/**
 	 * @return Whether the library automatically sends packets to keep the connection alive. Default is false.
 	 */
 	public boolean autoSendKeepAlive() {
@@ -512,11 +532,11 @@ public class PacketHandler {
 	}
 
 	/**
-	 * @return If no data is send by the application for some time, this value returns true.
+	 * @return If no data is send or received by the application for some time, this value returns true.
 	 * @see #DATA_TIMEOUT
 	 */
 	public boolean shouldSendKeepAlive() {
-		return (System.currentTimeMillis() - getLastPacketReceived()) >= DATA_TIMEOUT;
+		return (System.currentTimeMillis() - getLastPacketReceived()) >= DATA_TIMEOUT && (System.currentTimeMillis() - getLastPacketSend()) >= (DATA_TIMEOUT / 2);
 	}
 
 	/**
@@ -527,6 +547,18 @@ public class PacketHandler {
 	 */
 	public void notifyOnDefaultPackets(boolean notify) {
 		this.notifyDefaults = notify;
+	}
+
+	/**
+	 * 
+	 * @return If the OutputStream is immediatly flushed after a packet has been send. This is usually not needed, but COULD improve ping times. Default is false
+	 */
+	public boolean isInstantFlush() {
+		return instantFlush;
+	}
+
+	public void setInstantFlush(boolean instantFlush) {
+		this.instantFlush = instantFlush;
 	}
 
 	/**
