@@ -60,7 +60,8 @@ public class UnreliableInputStream extends InputStream {
 	@Override
 	public int read() throws IOException {
 		if (available() > 0) {
-			return buffer.removeFirst().intValue();
+			Byte b = buffer.removeFirst();
+			return b.byteValue() & 0xFF; // Return as unsigned, as required by documentation & implemenation(s).
 		} else {
 			// No more data in the buffer, read some new!
 			if (!readPacket())
@@ -88,7 +89,8 @@ public class UnreliableInputStream extends InputStream {
 			System.arraycopy(data, 0, fixedData, 0, fixedData.length);
 			data = fixedData;
 		}
-		for (byte b : data) {
+		
+		for (byte b : data) { // Conversion from array to list is not very efficient
 			buffer.add(b);
 		}
 		return true;
