@@ -216,7 +216,7 @@ public class PacketHandler {
 	 * @param expected
 	 *            Whether this was expected (like there was a close packet) or not (like when the underlying socket is closed without notification)
 	 */
-	protected void onConnectionClosed(String message, boolean expected) {
+	public void onConnectionClosed(String message, boolean expected) {
 		if (closed)
 			return;
 		getDefaultPacketListener().onConnectionClosed(this, message, expected);
@@ -568,6 +568,22 @@ public class PacketHandler {
 		closed = true;
 		getReader().interrupt();
 		getSender().interrupt();
+	}
+
+	public void setSender(DataSender s) throws InterruptedException {
+		if (s == null)
+			throw new IllegalArgumentException("DataSender can not be null");
+		getSender().interrupt();
+		getSender().join();
+		this.sender = s;
+	}
+
+	public void setReader(DataReader s) throws InterruptedException {
+		if (s == null)
+			throw new IllegalArgumentException("DataReader can not be null");
+		getReader().interrupt();
+		getReader().join();
+		this.reader = s;
 	}
 
 }

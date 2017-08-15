@@ -32,8 +32,8 @@ import com.germancoding.packetapi.defaultpackets.KeepAlivePacket;
 
 public class DataSender extends Thread {
 
-	private PacketHandler handler;
-	private LinkedList<Packet> sendQueue = new LinkedList<Packet>();
+	protected PacketHandler handler;
+	protected LinkedList<Packet> sendQueue = new LinkedList<Packet>();
 
 	public DataSender(PacketHandler handler) {
 		this.handler = handler;
