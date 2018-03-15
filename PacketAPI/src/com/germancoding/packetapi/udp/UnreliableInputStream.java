@@ -35,6 +35,7 @@ public class UnreliableInputStream extends InputStream {
 	private UnreliableSocket uSocket;
 	private DatagramSocket socket;
 	private LinkedList<Byte> buffer = new LinkedList<Byte>();
+	private boolean closed;
 
 	public UnreliableInputStream(UnreliableSocket socket) throws SocketException {
 		super();
@@ -44,21 +45,26 @@ public class UnreliableInputStream extends InputStream {
 
 	@Override
 	public int available() throws IOException {
+		if (closed)
+			return 0;
 		return buffer.size();
 	};
 
 	@Override
 	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
 		uSocket.close();
 		buffer.clear();
 		buffer = null;
 		socket = null;
-		// TODO: What about NPE's when methods are called after closing?
-		// Null-checks everywhere are ugly
 	};
 
 	@Override
 	public int read() throws IOException {
+		if (closed)
+			return -1;
 		if (available() > 0) {
 			Byte b = buffer.removeFirst();
 			return b.byteValue() & 0xFF; // Return as unsigned, as required by documentation & implemenation(s).
@@ -71,7 +77,7 @@ public class UnreliableInputStream extends InputStream {
 	}
 
 	private boolean readPacket() throws IOException {
-		if (socket.isClosed()) {
+		if (closed || socket.isClosed()) {
 			return false;
 		}
 		DatagramPacket packet = new DatagramPacket(new byte[UnreliableSocket.MAX_PACKET_SIZE], UnreliableSocket.MAX_PACKET_SIZE);
@@ -89,7 +95,7 @@ public class UnreliableInputStream extends InputStream {
 			System.arraycopy(data, 0, fixedData, 0, fixedData.length);
 			data = fixedData;
 		}
-		
+
 		for (byte b : data) { // Conversion from array to list is not very efficient
 			buffer.add(b);
 		}

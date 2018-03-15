@@ -35,6 +35,7 @@ public class UnreliableOutputStream extends OutputStream {
 	private UnreliableSocket uSocket;
 	private DatagramSocket socket;
 	private LinkedList<Byte> buffer = new LinkedList<Byte>();
+	private boolean closed;
 
 	public UnreliableOutputStream(UnreliableSocket uSocket) throws SocketException {
 		super();
@@ -44,6 +45,8 @@ public class UnreliableOutputStream extends OutputStream {
 
 	@Override
 	public void flush() throws IOException {
+		if (closed)
+			return;
 		while (buffer.size() > 0)
 			// Send more than one packet if the buffer is really big
 			sendPacket();
@@ -51,15 +54,18 @@ public class UnreliableOutputStream extends OutputStream {
 
 	@Override
 	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
 		uSocket.close();
 		buffer.clear();
 		buffer = null;
 		socket = null;
-		// TODO: What about NPE's when methods are called after closing?
-		// Null-checks everywhere are ugly
 	};
 
 	private void sendPacket() throws IOException {
+		if (closed)
+			return;
 		int length = buffer.size();
 		byte[] data = null;
 		if (length > UnreliableSocket.MAX_PACKET_SIZE) {
@@ -75,7 +81,10 @@ public class UnreliableOutputStream extends OutputStream {
 
 	@Override
 	public void write(int b) throws IOException {
+		if (closed)
+			return;
 		buffer.add(Integer.valueOf(b).byteValue());
 	}
+	
 
 }

@@ -23,6 +23,7 @@
  *******************************************************************************/
 package com.germancoding.packetapi.udp;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.DatagramSocket;
@@ -87,11 +88,18 @@ public class UnreliableSocket {
 
 	/**
 	 * Closes the underlying socket.
+	 * 
+	 * @throws IOException
+	 *             When closing of a stream fails. Should never happen.
 	 */
-	public void close() {
-		socket.close();
-		// TODO: What about closing I/O streams?
-		// The close() methods of the streams actually call this method... Infite-Loop possibilty!
+	public void close() throws IOException {
+		if (!socket.isClosed()) {
+			socket.close();
+			getOutputStream().close();
+			getInputStream().close();
+			out = null;
+			in = null;
+		}
 	}
 
 	/**
