@@ -30,7 +30,7 @@ import java.io.IOException;
 
 public class DataReader extends Thread {
 
-	private PacketHandler handler;
+	protected PacketHandler handler;
 
 	public DataReader(PacketHandler packetHandler) {
 		this.handler = packetHandler;
