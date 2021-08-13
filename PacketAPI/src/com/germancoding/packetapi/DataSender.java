@@ -77,7 +77,6 @@ public class DataSender extends Thread {
 					}
 					
 					handler.setLastPacketSend(System.currentTimeMillis());
-					dos = null;
 				} else if (handler.autoSendKeepAlive() && handler.shouldSendKeepAlive()) {
 					KeepAlivePacket autoKeepAlive = new KeepAlivePacket();
 					handler.sendPacket(autoKeepAlive); // We will send this packet in the next loop, right now it's in the queue
@@ -100,6 +99,11 @@ public class DataSender extends Thread {
 			} else {
 				handler.onConnectionFail(e);
 			}
+		} finally {
+			// Just to make sure we cleaned up here
+			handler = null;
+			sendQueue.clear();
+			// Do not set sendQueue to null, because close() may be running currently
 		}
 	}
 }

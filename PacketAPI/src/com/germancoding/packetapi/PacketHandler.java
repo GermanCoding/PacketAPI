@@ -26,6 +26,7 @@ package com.germancoding.packetapi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -161,7 +162,7 @@ public class PacketHandler {
 		if (packetClass == null)
 			throw new IllegalArgumentException("packetClass can not be null");
 		// If this call fails (e.g when there is no nullary constructor), an exception will be thrown.
-		short id = packetClass.newInstance().getId();
+		short id = packetClass.getDeclaredConstructor().newInstance().getId();
 		packetMap.put(id, packetClass);
 	}
 
@@ -172,10 +173,18 @@ public class PacketHandler {
 			return null;
 		}
 		try {
-			return packetClass.newInstance();
+			return packetClass.getDeclaredConstructor().newInstance();
 		} catch (InstantiationException e) {
 			logger.severe("Failed to instantiate a new packet class instance. " + e);
 		} catch (IllegalAccessException e) {
+			logger.severe("Failed to instantiate a new packet class instance. " + e);
+		} catch (IllegalArgumentException e) {
+			logger.severe("Failed to instantiate a new packet class instance. " + e);
+		} catch (InvocationTargetException e) {
+			logger.severe("Failed to instantiate a new packet class instance. " + e);
+		} catch (NoSuchMethodException e) {
+			logger.severe("Failed to instantiate a new packet class instance. " + e);
+		} catch (SecurityException e) {
 			logger.severe("Failed to instantiate a new packet class instance. " + e);
 		}
 		return null;
@@ -202,14 +211,16 @@ public class PacketHandler {
 	public void onConnectionFail(Exception e) {
 		if (closed) // Abort if the connection was already closed (A closed connection can not fail)
 			return;
+		closeListenerNotified = true;
+		close();
 		logger.warning("Connection '" + getConnectionName() + "' failed! " + e);
 		getDefaultPacketListener().onConnectionFailed(this, e);
 		getListener().onConnectionFailed(this, e);
-		close();
+		dispose();
 	}
 
 	/**
-	 * Notifies this instance that the connection is closed.
+	 * Notifies this instance that the connection is closed (or will be closed now) for an external reason.
 	 * 
 	 * @param message
 	 *            Message why the connection was closed.
@@ -219,10 +230,11 @@ public class PacketHandler {
 	public void onConnectionClosed(String message, boolean expected) {
 		if (closed)
 			return;
-		getDefaultPacketListener().onConnectionClosed(this, message, expected);
-		getListener().onConnectionClosed(this, message, expected);
 		closeListenerNotified = true;
 		close();
+		getDefaultPacketListener().onConnectionClosed(this, message, expected);
+		getListener().onConnectionClosed(this, message, expected);
+		dispose();
 	}
 
 	/**
@@ -232,14 +244,9 @@ public class PacketHandler {
 		if (closed)
 			return;
 		closed = true;
-		if (!closeListenerNotified) {
-			// Someone is calling close() directly so we assume that the connection was closed expectly
-			getDefaultPacketListener().onConnectionClosed(this, "Connection closed locally", true);
-			getListener().onConnectionClosed(this, "Connection closed locally", true);
-		}
 		ClosePacket close = new ClosePacket();
 		sendPacket(close);
-		long timeout = System.currentTimeMillis() + 5000;
+		long timeout = System.currentTimeMillis() + 1000;
 		do {
 			synchronized (this) {
 				try {
@@ -263,7 +270,13 @@ public class PacketHandler {
 		synchronized (processingQueue) { // <--- Request ownership of the object's monitor to call notify()
 			processingQueue.notify(); // Wake up an waiting external thread (if there is one) to update itself.
 		}
-		dispose();
+
+		if (!closeListenerNotified) {
+			// Someone is calling close() directly so we assume that the connection was closed expectly
+			getDefaultPacketListener().onConnectionClosed(this, "Connection closed locally", true);
+			getListener().onConnectionClosed(this, "Connection closed locally", true);
+			dispose();
+		}
 	}
 
 	private void dispose() {
@@ -369,10 +382,10 @@ public class PacketHandler {
 	private void processPacket(Packet packet) {
 		setLastPacketReceived(System.currentTimeMillis());
 		if (packet instanceof DefaultPacket) {
-			getDefaultPacketListener().onPacketReceived(this, packet);
 			if (notifyDefaults) {
 				getListener().onPacketReceived(this, packet);
 			}
+			getDefaultPacketListener().onPacketReceived(this, packet);
 		} else {
 			getListener().onPacketReceived(this, packet);
 		}

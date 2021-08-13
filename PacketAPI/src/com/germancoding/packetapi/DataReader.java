@@ -84,6 +84,9 @@ public class DataReader extends Thread {
 			} else {
 				handler.onConnectionFail(e);
 			}
+		} finally {
+			// Just to make sure we cleaned up here
+			handler = null;
 		}
 	}
 
