@@ -31,6 +31,9 @@ import com.germancoding.packetapi.defaultpackets.KeepAlivePacket;
 public class DefaultPacketListener implements PacketListener {
 
 	private PacketHandler handler;
+	private boolean ignoreClosePackets;
+	private boolean ignoreHandshakePackets;
+	private boolean ignoreKeepAlivePackets;
 
 	public DefaultPacketListener(PacketHandler handler) {
 		this.handler = handler;
@@ -53,7 +56,6 @@ public class DefaultPacketListener implements PacketListener {
 		;
 	}
 
-
 	@Override
 	public void onConnectionClosed(PacketHandler handler, String message, boolean expected) {
 		;
@@ -67,6 +69,10 @@ public class DefaultPacketListener implements PacketListener {
 	// Handlers
 
 	private void handleHandshakePacket(HandshakePacket packet) {
+		if (ignoreHandshakePackets()) {
+			return;
+		}
+
 		if (packet.getHandshakeID() == PacketHandler.HANDSHAKE_ID_REQUEST) {
 			handler.sendHandshake(PacketHandler.HANDSHAKE_ID_RESPONSE);
 		}
@@ -77,11 +83,18 @@ public class DefaultPacketListener implements PacketListener {
 	}
 
 	private void handleClosePacket(ClosePacket packet) {
+		if (ignoreClosePackets()) {
+			return;
+		}
+
 		if (!handler.isClosed())
 			handler.onConnectionClosed(packet.getCloseMessage(), true);
 	}
 
 	private void handleKeepAlivePacket(KeepAlivePacket packet) {
+		if (ignoreKeepAlivePackets()) {
+			return;
+		}
 		if (!packet.isResponse()) {
 			KeepAlivePacket keepAliveResponse = new KeepAlivePacket();
 			keepAliveResponse.setResponse(true);
@@ -92,6 +105,30 @@ public class DefaultPacketListener implements PacketListener {
 	@Override
 	public void onConnectionFailed(PacketHandler handler, Throwable exception) {
 		;
+	}
+
+	public boolean ignoreClosePackets() {
+		return ignoreClosePackets;
+	}
+
+	public void setIgnoreClosePackets(boolean ignoreClosePackets) {
+		this.ignoreClosePackets = ignoreClosePackets;
+	}
+
+	public boolean ignoreHandshakePackets() {
+		return ignoreHandshakePackets;
+	}
+
+	public void setIgnoreHandshakePackets(boolean ignoreHandshakePackets) {
+		this.ignoreHandshakePackets = ignoreHandshakePackets;
+	}
+
+	public boolean ignoreKeepAlivePackets() {
+		return ignoreKeepAlivePackets;
+	}
+
+	public void setIgnoreKeepAlivePackets(boolean ignoreKeepAlivePackets) {
+		this.ignoreKeepAlivePackets = ignoreKeepAlivePackets;
 	}
 
 }
