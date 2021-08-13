@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.LinkedList;
 
@@ -36,6 +37,8 @@ public class UnreliableInputStream extends InputStream {
 	private DatagramSocket socket;
 	private LinkedList<Byte> buffer = new LinkedList<Byte>();
 	private boolean closed;
+	private InetAddress lastContactAddress;
+	private int lastContactPort;
 
 	public UnreliableInputStream(UnreliableSocket socket) throws SocketException {
 		super();
@@ -82,6 +85,7 @@ public class UnreliableInputStream extends InputStream {
 		}
 		DatagramPacket packet = new DatagramPacket(new byte[UnreliableSocket.MAX_PACKET_SIZE], UnreliableSocket.MAX_PACKET_SIZE);
 		socket.receive(packet);
+		setLastContactAddress(packet.getAddress(), packet.getPort());
 		if (uSocket.getRemoteAddress() != null) {
 			if (!packet.getAddress().equals(uSocket.getRemoteAddress()) || packet.getPort() != uSocket.getRemotePort()) {
 				// Silently ignore packets that we don't know
@@ -100,6 +104,23 @@ public class UnreliableInputStream extends InputStream {
 			buffer.add(b);
 		}
 		return true;
+	}
+
+	public InetAddress getLastContactAddress() {
+		return lastContactAddress;
+	}
+
+	public void setLastContactAddress(InetAddress address, int port) {
+		this.lastContactAddress = address;
+		this.setLastContactPort(port);
+	}
+
+	public int getLastContactPort() {
+		return lastContactPort;
+	}
+
+	public void setLastContactPort(int lastContactPort) {
+		this.lastContactPort = lastContactPort;
 	}
 
 }

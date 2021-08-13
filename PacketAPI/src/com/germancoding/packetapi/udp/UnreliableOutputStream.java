@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.LinkedList;
 
@@ -36,6 +37,8 @@ public class UnreliableOutputStream extends OutputStream {
 	private DatagramSocket socket;
 	private LinkedList<Byte> buffer = new LinkedList<Byte>();
 	private boolean closed;
+	private InetAddress overrideSendAddress;
+	private int overridePort = -1;
 
 	public UnreliableOutputStream(UnreliableSocket uSocket) throws SocketException {
 		super();
@@ -75,7 +78,7 @@ public class UnreliableOutputStream extends OutputStream {
 		for (int i = 0; i < length; i++) {
 			data[i] = buffer.removeFirst();
 		}
-		DatagramPacket packet = new DatagramPacket(data, length, uSocket.getRemoteAddress(), uSocket.getRemotePort());
+		DatagramPacket packet = new DatagramPacket(data, length, getOverrideSendAddress() != null ? getOverrideSendAddress() : uSocket.getRemoteAddress(), getOverridePort() > -1 ? getOverridePort() : uSocket.getRemotePort());
 		socket.send(packet);
 	}
 
@@ -85,6 +88,21 @@ public class UnreliableOutputStream extends OutputStream {
 			return;
 		buffer.add(Integer.valueOf(b).byteValue());
 	}
-	
+
+	public InetAddress getOverrideSendAddress() {
+		return overrideSendAddress;
+	}
+
+	public void setOverrideSendAddress(InetAddress overrideSendAddress) {
+		this.overrideSendAddress = overrideSendAddress;
+	}
+
+	public int getOverridePort() {
+		return overridePort;
+	}
+
+	public void setOverridePort(int overridePort) {
+		this.overridePort = overridePort;
+	}
 
 }
