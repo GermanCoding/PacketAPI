@@ -25,7 +25,7 @@ could fail (or at least the parsing). Sending such big packets is possible thoug
 
 Download
 --
-You can download a up to date pre-compiled version of this API here (Compiled with Java 8):
+You can download a up to date pre-compiled version of this API here (Compiled with Java 11):
 https://build.germancoding.com/job/PacketAPI/lastSuccessfulBuild/artifact/PacketAPI/dist/lib/PacketAPI.jar
 
 Of course you can also download/clone the source and compile it for yourself.
